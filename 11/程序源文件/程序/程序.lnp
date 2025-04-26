@@ -1,0 +1,6 @@
+"STARTUP.obj",
+"main.obj",
+"common.obj",
+"lcd1602.obj" 
+TO "³ÌÐò" 
+RAMSIZE(256) 
