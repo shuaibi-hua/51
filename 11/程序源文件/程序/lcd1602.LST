@@ -1,0 +1,116 @@
+C51 COMPILER V9.59.0.0   LCD1602                                                           07/03/2023 15:04:05 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE LCD1602
+OBJECT MODULE PLACED IN lcd1602.OBJ
+COMPILER INVOKED BY: E:\KEIL5\C51\BIN\C51.EXE lcd1602.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include <reg52.h>
+   2          #include <intrins.h>
+   3          #include "lcd1602.h"
+   4          #include "common.h" 
+   5          
+   6          sbit RS = P2^5;//数据命令引脚
+   7          sbit RW = P2^6;//读写引脚
+   8          sbit E = P2^7;//使能引脚
+   9          
+  10          #define DataPort P0//1602并行通信口
+  11          
+  12          void lcd_clear(void)
+  13          {
+  14   1           lcd_write_com(0x01);
+  15   1         delay_ms(5);
+  16   1      }
+  17          
+  18          void lcd_write_com(unsigned char byte)
+  19          {
+  20   1          RS = 0;
+  21   1          RW = 0;
+  22   1          E = 1;
+  23   1          DataPort = byte;
+  24   1          _nop_();
+  25   1          _nop_();
+  26   1          delay_ms(1);
+  27   1          E = 0;   
+  28   1      }
+  29          
+  30          void lcd_write_data(unsigned char byte)
+  31          {
+  32   1          RS = 1;
+  33   1          RW = 0;
+  34   1          E = 1;
+  35   1          DataPort = byte;
+  36   1          _nop_();
+  37   1          _nop_();
+  38   1          delay_ms(1);
+  39   1          E = 0;
+  40   1      }
+  41          
+  42          void lcd_init()
+  43          {
+  44   1          delay_ms(5);
+  45   1          lcd_write_com(0x38);//设置16*2显示，5*7点阵，8位数据接口
+  46   1          delay_ms(5);
+  47   1          lcd_write_com(0x38);//设置16*2显示，5*7点阵，8位数据接口
+  48   1          delay_ms(5);
+  49   1          lcd_write_com(0x38);//设置16*2显示，5*7点阵，8位数据接口
+  50   1          delay_ms(5);
+  51   1          lcd_write_com(0x08); //关闭显示
+  52   1          delay_ms(5);
+  53   1          lcd_write_com(0x01);//清屏指令
+  54   1          delay_ms(5);
+  55   1          lcd_write_com(0x06);
+C51 COMPILER V9.59.0.0   LCD1602                                                           07/03/2023 15:04:05 PAGE 2   
+
+  56   1          delay_ms(5);
+  57   1          lcd_write_com(0x0c);
+  58   1          delay_ms(5);
+  59   1          
+  60   1      }
+  61          void lcd_write_char(unsigned char x,unsigned char y,unsigned char byte)//在指定位置显示字符
+  62          {
+  63   1          if(0 == y)
+  64   1          {
+  65   2            lcd_write_com(0x80 + x);//第一行
+  66   2          }
+  67   1          else if(1 == y)
+  68   1          {
+  69   2            lcd_write_com(0x80 + 0x40 + x);//第二行
+  70   2          }
+  71   1          lcd_write_data(byte);
+  72   1      }
+  73          
+  74          void lcd_write_str(unsigned char x, unsigned char y, unsigned char *s)//在指定位置显示字符串
+  75          {
+  76   1         if(0 == y)
+  77   1          {
+  78   2            lcd_write_com(0x80 + x);//第一行
+  79   2          }
+  80   1          else
+  81   1          {
+  82   2            lcd_write_com(0x80 + 0x40 + x);//第二行
+  83   2          }
+  84   1          
+  85   1          while(*s)//判断是否检测到结束符 
+  86   1          {
+  87   2            lcd_write_data(*s);//显示数据
+  88   2            s++;//指针加1 
+  89   2          }
+  90   1          
+  91   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    210    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =   ----       7
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

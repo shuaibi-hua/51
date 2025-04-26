@@ -1,0 +1,389 @@
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: E:\KEIL5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include <reg51.h>
+   2          #include <intrins.h>
+   3          #include <math.h>     
+   4          #include <stdio.h>     
+   5           
+   6          #define uchar unsigned char   // 以后unsigned char就可以用uchar代替
+   7          #define uint  unsigned int    // 以后unsigned int 就可以用uint 代替
+   8           
+   9           
+  10          //LCD定义 
+  11          #define LCD_DB P0 
+  12          sbit LCD_RS=P2^0;   
+  13          sbit LCD_RW=P2^1;  
+  14          sbit LCD_E=P2^2;  
+  15          
+  16          sbit FMQ=P3^6;  
+  17          
+  18          sbit LED1=P3^7;   
+  19          
+  20          sbit K1=P1^5;   
+  21          sbit K2=P1^6;  
+  22          sbit K3=P1^7;  
+  23          sbit K4=P1^4;  
+  24          bit flag=1; 
+  25          
+  26          sbit JR=P2^3;  
+  27          sbit JW=P2^4; 
+  28          uint i=0;
+  29          sbit DQ = P1^1;         // 温度传感器的引脚 
+  30          uint Time50ms=0;
+  31          uint num0,num1;     
+  32          uint wendu=0;
+  33          uint H=35;
+  34          uint L=20;
+  35          /*-------------------------------------
+  36                   函数申明
+  37          ---------------------------------------*/
+  38          void LCD_init(void);                          //初始化函数 
+  39          void LCD_write_command(uchar command);        //写指令函数 
+  40          void LCD_write_data(uchar dat);               //写数据函数  
+  41          void LCD_disp_char(uchar x,uchar y,uchar dat);//在某个屏幕位置上显示一个字符,X（0-15),y(1-2)  
+  42          void LCD_disp_str(uchar x,uchar y,uchar *str); //LCD1602显示字符串函数 
+  43          void delay_n10us(uint n);                     //延时函数
+  44          /*-------------------------------------
+  45                   LCD1602子程序
+  46          ---------------------------------------*/
+  47          void LCD_init(void) 
+  48          {  
+  49   1        delay_n10us(10);  
+  50   1        LCD_write_command(0x38);//设置8位格式，2行，5x7 
+  51   1        delay_n10us(10);  LCD_write_command(0x0c);//开显示，关光标，不闪烁 
+  52   1        delay_n10us(10);  LCD_write_command(0x06);//设定输入方式，增量不移位 
+  53   1        delay_n10us(10);  LCD_write_command(0x01);//清除屏幕显示  
+  54   1        delay_n10us(100);       //延时清屏，延时函数，延时约n个10us 
+  55   1      }
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 2   
+
+  56          
+  57          void LCD_write_command(uchar dat) 
+  58          {  
+  59   1        delay_n10us(10);  
+  60   1        LCD_RS=0;         //指令 
+  61   1        LCD_RW=0;         //写入 
+  62   1        LCD_E=1;          //允许 
+  63   1        LCD_DB=dat;  delay_n10us(10);  //实践证明，我的LCD1602上，用for循环1次就能完成普通写指令。 
+  64   1        LCD_E=0;  delay_n10us(10);  //实践证明，我的LCD1602上，用for循环1次就能完成普通写指令。 
+  65   1      }
+  66          
+  67          void LCD_write_data(uchar dat) 
+  68          {  
+  69   1        delay_n10us(10);  
+  70   1        LCD_RS=1;          //数据 
+  71   1        LCD_RW=0;      //写入
+  72   1        LCD_E=1;           //允许 
+  73   1        LCD_DB=dat; delay_n10us(10);
+  74   1         LCD_E=0;  delay_n10us(10); 
+  75   1      }
+  76          
+  77          void LCD_disp_char(uchar x,uchar y,uchar dat) 
+  78          {    
+  79   1        uchar address;   
+  80   1        if(y==1)           
+  81   1        address=0x80+x;  
+  82   1        else           
+  83   1        address=0xc0+x;    
+  84   1        LCD_write_command(address);   
+  85   1        LCD_write_data(dat); 
+  86   1      }
+  87          
+  88          void LCD_disp_str(uchar x,uchar y,uchar *str) 
+  89          {    
+  90   1        uchar address;   
+  91   1        if(y==1)           
+  92   1        address=0x80+x;   
+  93   1        else           
+  94   1        address=0xc0+x;    
+  95   1        LCD_write_command(address);   
+  96   1        while(*str!='\0')   
+  97   1          {       
+  98   2          LCD_write_data(*str);
+  99   2          str++;
+ 100   2          }
+ 101   1      }
+ 102          
+ 103          void delay_n10us(uint n)  //延时 
+ 104          {                 
+ 105   1        uint i;                    
+ 106   1        for(i=n;i>0;i--)            
+ 107   1         {         
+ 108   2         nop_();_nop_();_nop_();_nop_();_nop_();_nop_();    
+ 109   2         } 
+ 110   1      }
+ 111          
+ 112          
+ 113          
+ 114          
+ 115          /*********************************************************/
+ 116          // 延时15微秒
+ 117          /*********************************************************/
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 3   
+
+ 118          void Delay15us(void)
+ 119          {
+ 120   1        _nop_();
+ 121   1        _nop_();
+ 122   1        _nop_();
+ 123   1        _nop_();
+ 124   1        _nop_();
+ 125   1        _nop_();
+ 126   1        _nop_();
+ 127   1        _nop_();
+ 128   1        _nop_();
+ 129   1        _nop_();
+ 130   1        _nop_();
+ 131   1        _nop_();
+ 132   1        _nop_();
+ 133   1        _nop_();
+ 134   1        _nop_();
+ 135   1      }
+ 136          
+ 137          
+ 138          /*********************************************************/
+ 139          // 复位DS18B20（初始化）
+ 140          /*********************************************************/
+ 141          void DS18B20_ReSet(void)
+ 142          {
+ 143   1        uchar i;
+ 144   1        DQ=0;
+ 145   1        i=240;
+ 146   1        while(--i);
+ 147   1        DQ=1;
+ 148   1        i=30;
+ 149   1        while(--i);
+ 150   1        while(~DQ);
+ 151   1        i=4;
+ 152   1        while(--i);
+ 153   1      }
+ 154          
+ 155          
+ 156          /*********************************************************/
+ 157          // 向DS18B20写入一个字节
+ 158          /*********************************************************/
+ 159          void DS18B20_WriteByte(uchar dat)
+ 160          {
+ 161   1        uchar j;
+ 162   1        uchar btmp;
+ 163   1        
+ 164   1        for(j=0;j<8;j++)
+ 165   1        {
+ 166   2          btmp=0x01;
+ 167   2          btmp=btmp<<j;
+ 168   2          btmp=btmp&dat;
+ 169   2          
+ 170   2          if(btmp>0)    // 写1
+ 171   2          {
+ 172   3            DQ=0;
+ 173   3            Delay15us();
+ 174   3            DQ=1;
+ 175   3            Delay15us();
+ 176   3            Delay15us();
+ 177   3            Delay15us();
+ 178   3            Delay15us();
+ 179   3          }
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 4   
+
+ 180   2          else      // 写0
+ 181   2          {
+ 182   3            DQ=0;
+ 183   3            Delay15us();
+ 184   3            Delay15us();
+ 185   3            Delay15us();
+ 186   3            Delay15us();
+ 187   3            DQ=1;
+ 188   3            Delay15us();
+ 189   3          }
+ 190   2        }
+ 191   1      }
+ 192          
+ 193          
+ 194          /*********************************************************/
+ 195          // 读取温度值
+ 196          /*********************************************************/
+ 197          int DS18B20_ReadTemp(void)
+ 198          {
+ 199   1        uchar j;
+ 200   1        int b,temp=0; 
+ 201   1      
+ 202   1        DS18B20_ReSet();              // 产生复位脉
+ 203   1        DS18B20_WriteByte(0xcc);      // 忽略ROM指令
+ 204   1        DS18B20_WriteByte(0x44);      // 启动温度转换指令
+ 205   1      
+ 206   1        DS18B20_ReSet();              // 产生复位脉
+ 207   1        DS18B20_WriteByte(0xcc);      // 忽略ROM指令
+ 208   1        DS18B20_WriteByte(0xbe);      // 读取温度指令
+ 209   1      
+ 210   1        for(j=0;j<16;j++)             // 读取温度数量
+ 211   1        {           
+ 212   2          DQ=0;
+ 213   2          _nop_();
+ 214   2          _nop_();
+ 215   2          DQ=1; 
+ 216   2          Delay15us();
+ 217   2          b=DQ;
+ 218   2          Delay15us();
+ 219   2          Delay15us();
+ 220   2          Delay15us();
+ 221   2          b=b<<j;
+ 222   2          temp=temp|b;
+ 223   2        }
+ 224   1        
+ 225   1        temp=temp*0.625;              // 合成温度值并放大10倍         
+ 226   1        
+ 227   1        return (temp);                // 返回检测到的温度值
+ 228   1      }
+ 229          
+ 230          
+ 231          
+ 232          
+ 233          
+ 234          
+ 235          void LCD()
+ 236          {
+ 237   1        LCD_disp_char(8,1,wendu/100+'0'); //显示 
+ 238   1        LCD_disp_char(9,1,wendu/10%10+'0'); //显示 
+ 239   1        LCD_disp_char(10,1,wendu%10+'0'); //显示 
+ 240   1      
+ 241   1        
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 5   
+
+ 242   1        LCD_disp_char(2,2,H/100+'0'); //显示 
+ 243   1        LCD_disp_char(3,2,H/10%10+'0'); //显示 
+ 244   1        LCD_disp_char(4,2,H%10+'0'); //显示 
+ 245   1        
+ 246   1        LCD_disp_char(12,2,L/100+'0'); //显示 
+ 247   1        LCD_disp_char(13,2,L/10%10+'0'); //显示 
+ 248   1        LCD_disp_char(14,2,L%10+'0'); //显示 
+ 249   1      }
+ 250          
+ 251          
+ 252          
+ 253          void delay_ms(unsigned int ms)// 延时子程序
+ 254          {   
+ 255   1        unsigned int a,b;
+ 256   1        for(a=ms;a>0;a--)
+ 257   1        for(b=123;b>0;b--);
+ 258   1      }
+ 259          
+ 260          void key()
+ 261          {
+ 262   1        if(K1==0)
+ 263   1        {
+ 264   2          if(flag==1)
+ 265   2          {
+ 266   3            flag=0;
+ 267   3            if(H<128)
+ 268   3            {
+ 269   4              H++;
+ 270   4            }
+ 271   3          }
+ 272   2        }
+ 273   1        else if(K2==0)
+ 274   1        {
+ 275   2          if(flag==1)
+ 276   2          {
+ 277   3            flag=0;
+ 278   3            if(H>L+1)
+ 279   3            {
+ 280   4              H--;
+ 281   4            }
+ 282   3          }
+ 283   2        }
+ 284   1        else if(K3==0)
+ 285   1        {
+ 286   2          if(flag==1)
+ 287   2          {
+ 288   3            flag=0;
+ 289   3            if(L<H-1)
+ 290   3            {
+ 291   4              L++;
+ 292   4            }
+ 293   3          }
+ 294   2        }
+ 295   1        else if(K4==0)
+ 296   1        {
+ 297   2          if(flag==1)
+ 298   2          {
+ 299   3            flag=0;
+ 300   3            if(L>0)
+ 301   3            {
+ 302   4              L--;
+ 303   4            }
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 6   
+
+ 304   3          }
+ 305   2        }
+ 306   1        else
+ 307   1        {
+ 308   2          flag=1;
+ 309   2        }
+ 310   1      }
+ 311          /********************************************************
+ 312          主函数
+ 313          ********************************************************/
+ 314          void main(void)
+ 315          {
+ 316   1        LCD_init();//LCD初始化              
+ 317   1        LCD_disp_str(0,1,"   Temp:000c    "); //显示 
+ 318   1        LCD_disp_str(0,2,"H:000c    L:000c"); //显示 
+ 319   1        
+ 320   1        while(1)
+ 321   1        {
+ 322   2          key();
+ 323   2          wendu=DS18B20_ReadTemp()/10;  // 读取温度值 
+ 324   2          
+ 325   2          LCD();
+ 326   2          
+ 327   2          
+ 328   2       
+ 329   2          
+ 330   2          if(wendu<L)
+ 331   2          {
+ 332   3            JR=0;
+ 333   3          }
+ 334   2          if(wendu>H)
+ 335   2          {
+ 336   3            JR=1; 
+ 337   3          }
+ 338   2          
+ 339   2          if(wendu<L||wendu>H)
+ 340   2            FMQ=0;  
+ 341   2          else
+ 342   2            FMQ=1;
+ 343   2      
+ 344   2          
+ 345   2          
+ 346   2          LED1=JR;
+ 347   2          
+ 348   2          delay_ms(200);//延时子程序
+ 349   2        }
+ 350   1      }
+ 351          
+ 352          
+ 353          
+ 354          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    905    ----
+   CONSTANT SIZE    =     34    ----
+   XDATA SIZE       =   ----    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =     14       8
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      1    ----
+END OF MODULE INFORMATION.
+
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 23:12:17 PAGE 7   
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

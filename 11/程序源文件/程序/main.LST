@@ -1,0 +1,213 @@
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 15:04:04 PAGE 1   
+
+
+C51 COMPILER V9.59.0.0, COMPILATION OF MODULE MAIN
+OBJECT MODULE PLACED IN main.OBJ
+COMPILER INVOKED BY: E:\KEIL5\C51\BIN\C51.EXE main.c OPTIMIZE(8,SPEED) BROWSE DEBUG OBJECTEXTEND TABS(2)
+
+line level    source
+
+   1          #include "common.h"
+   2          #include "DS18B20_One.h"
+   3          #include "lcd1602.h"
+   4          #include "eeprom52.h"
+   5           
+   6          sbit key1 = P1^5;
+   7          sbit key2 = P1^4;
+   8          sbit key3 = P1^3;
+   9          
+  10          sbit beep = P2^0;
+  11          
+  12          sbit jdq = P3^7;
+  13          
+  14          sbit led1 = P1^0;
+  15          sbit led2 = P1^1;
+  16          
+  17          unsigned char temp_hight = 35,temp_low = 10,setn=0;
+  18          bit flag = 0;
+  19          
+  20          char check = 111;//检验位
+  21          
+  22          void write_eeprom()//eeprom存储数据，设置值
+  23          {
+  24   1          SectorErase(0x2000);//清除
+  25   1      
+  26   1          byte_write(0x2001, temp_low);
+  27   1          byte_write(0x2002, temp_hight);
+  28   1          byte_write(0x2009, check);
+  29   1      }
+  30          
+  31          void eeprom_init()//eeprom读取数据
+  32          {
+  33   1          check = byte_read(0x2009);
+  34   1          if(check != 111)//单片机第一次使用时，check校验值便不是111，所以这里要把初始的数据先存一遍再读取
+  35   1          {
+  36   2              check = 111;
+  37   2              temp_hight = 35;
+  38   2              temp_low = 10;
+  39   2              write_eeprom();
+  40   2          }
+  41   1          temp_low = byte_read(0x2001);//读取下限值
+  42   1          temp_hight = byte_read(0x2002);//读取上限值
+  43   1      }
+  44          
+  45          void keyscan()
+  46          {
+  47   1        if(key1 == 0)//加键
+  48   1        {
+  49   2           delay_ms(10);//消抖
+  50   2           if(key1 == 0)
+  51   2           {
+  52   3              while(key1 == 0);//等待按键松开
+  53   3              if(setn == 1)//设置温度下限
+  54   3              {
+  55   4                  if(temp_hight - temp_low > 1)
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 15:04:04 PAGE 2   
+
+  56   4                  {
+  57   5                     temp_low++;  
+  58   5                  } 
+  59   4                  lcd_write_char(4,1,temp_low/10+48);
+  60   4                  lcd_write_char(5,1,temp_low%10+48);
+  61   4                  
+  62   4                  lcd_write_com(0x80+0x40+5);
+  63   4                  lcd_write_com(0x0f);
+  64   4              }
+  65   3              if(setn == 2)//设置温度上限
+  66   3              {
+  67   4                  if(temp_hight < 99)//最大到99
+  68   4                  {
+  69   5                     temp_hight++;  
+  70   5                  } 
+  71   4                  lcd_write_char(13,1,temp_hight/10+48);
+  72   4                  lcd_write_char(14,1,temp_hight%10+48);
+  73   4                  
+  74   4                  lcd_write_com(0x80+0x40+14);
+  75   4                  lcd_write_com(0x0f);
+  76   4              }
+  77   3              write_eeprom();//存储
+  78   3           }  
+  79   2        }
+  80   1        if(key2 == 0)//减键
+  81   1        {
+  82   2           delay_ms(10);
+  83   2           if(key2 == 0)
+  84   2           {
+  85   3              while(key2 == 0);
+  86   3              if(setn == 1)
+  87   3              {
+  88   4                  if(temp_low > 0)
+  89   4                  {
+  90   5                     temp_low--;  
+  91   5                  } 
+  92   4                  lcd_write_char(4,1,temp_low/10+48);
+  93   4                  lcd_write_char(5,1,temp_low%10+48);
+  94   4                  
+  95   4                  lcd_write_com(0x80+0x40+5);
+  96   4                  lcd_write_com(0x0f);
+  97   4              }
+  98   3              if(setn == 2)
+  99   3              {
+ 100   4                  if(temp_hight - temp_low > 1)
+ 101   4                  {
+ 102   5                     temp_hight--;  
+ 103   5                  } 
+ 104   4                  lcd_write_char(13,1,temp_hight/10+48);
+ 105   4                  lcd_write_char(14,1,temp_hight%10+48);
+ 106   4                  
+ 107   4                  lcd_write_com(0x80+0x40+14);
+ 108   4                  lcd_write_com(0x0f);
+ 109   4              }
+ 110   3              write_eeprom();
+ 111   3           }  
+ 112   2        }
+ 113   1        if(key3 == 0)//设置键
+ 114   1        {
+ 115   2           delay_ms(10);
+ 116   2           if(key3 == 0)
+ 117   2           {
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 15:04:04 PAGE 3   
+
+ 118   3              while(key3 == 0);
+ 119   3              beep = 1;
+ 120   3              setn++;
+ 121   3              if(setn > 2)
+ 122   3              {
+ 123   4                  setn = 0;
+ 124   4                  lcd_write_com(0x0c);//关闭光标
+ 125   4              }
+ 126   3              if(setn == 1)
+ 127   3              {
+ 128   4                  lcd_write_com(0x80+0x40+5);
+ 129   4                  lcd_write_com(0x0f);
+ 130   4              }
+ 131   3              if(setn == 2)
+ 132   3              {
+ 133   4                  lcd_write_com(0x80+0x40+14);
+ 134   4                  lcd_write_com(0x0f);
+ 135   4              }
+ 136   3           }  
+ 137   2        }
+ 138   1      }
+ 139          
+ 140          void main()
+ 141          {
+ 142   1          short temperature;//温度
+ 143   1          unsigned int count;
+ 144   1      
+ 145   1          temperature = DS18B20_TF();
+ 146   1          delay_ms(1000);
+ 147   1          eeprom_init();
+ 148   1          lcd_init();//1602液晶初始化
+ 149   1          lcd_write_str(0,0,"Temperature:   C");
+ 150   1          lcd_write_str(0,1,"T-L:00C  T-H:00C");
+ 151   1      
+ 152   1          lcd_write_char(4,1,temp_low/10+48);//显示十位 
+ 153   1          lcd_write_char(5,1,temp_low%10+48);//显示个位
+ 154   1        
+ 155   1          lcd_write_char(13,1,temp_hight/10+48);
+ 156   1          lcd_write_char(14,1,temp_hight%10+48);
+ 157   1          delay_ms(1000);
+ 158   1          while(1)
+ 159   1          {
+ 160   2             keyscan();
+ 161   2             if(count++ > 200 && setn ==0)
+ 162   2             {
+ 163   3                count = 0;
+ 164   3      
+ 165   3                temperature = DS18B20_TF();//读取温度
+ 166   3                lcd_write_char(13,0,temperature/10+48);
+ 167   3                lcd_write_char(14,0,temperature%10+48);
+ 168   3                 
+ 169   3                if(temperature <= temp_low){led1=0;jdq=0;}else{led1=1;}
+ 170   3                if(temperature >= temp_hight){led2=0;jdq=1;}else{led2=1;}
+ 171   3               
+ 172   3                  if(temperature >= temp_hight || temperature <= temp_low)
+ 173   3                  {
+ 174   4                      beep = ~beep;//蜂鸣器报警
+ 175   4                      delay_ms(10);
+ 176   4                  }
+ 177   3                  else
+ 178   3                  {
+ 179   4                      beep = 1;//蜂鸣器关闭
+C51 COMPILER V9.59.0.0   MAIN                                                              07/03/2023 15:04:04 PAGE 4   
+
+ 180   4                  }
+ 181   3             }
+ 182   2             delay_ms(1);
+ 183   2          }
+ 184   1      }
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =   1408    ----
+   CONSTANT SIZE    =     34    ----
+   XDATA SIZE       =      6    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      4      11
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =      2    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)

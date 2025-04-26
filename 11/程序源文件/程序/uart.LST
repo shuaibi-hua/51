@@ -1,0 +1,161 @@
+C51 COMPILER V9.00   UART                                                                  11/22/2018 23:27:16 PAGE 1   
+
+
+C51 COMPILER V9.00, COMPILATION OF MODULE UART
+OBJECT MODULE PLACED IN uart.OBJ
+COMPILER INVOKED BY: D:\办公软件\keil 4\002-keil4 安装软件\C51\BIN\C51.EXE uart.c BROWSE DEBUG OBJECTEXTEND
+
+line level    source
+
+   1          /*
+   2           * stc uart
+   3          */
+   4          
+   5          #include "common.h"
+   6          #include "uart.h"
+   7          
+   8          /*Define UART parity mode*/
+   9          #define NONE_PARITY     0   //None parity
+  10          #define ODD_PARITY      1   //Odd parity
+  11          #define EVEN_PARITY     2   //Even parity
+  12          #define MARK_PARITY     3   //Mark parity
+  13          #define SPACE_PARITY    4   //Space parity
+  14          
+  15          #define PARITYBIT NONE_PARITY   //Testing even parity
+  16          
+  17          
+  18          COMx_Define     COM1;
+  19          unsigned char   xdata TX1_Buffer[COM_TX1_Lenth];        //?¤?é?¨a?o3?
+  20          unsigned char xdata RX1_Buffer[COM_RX1_Lenth];  //?¨?¨o??o3?
+  21          
+  22          void uart_int(void) interrupt 4 using 1
+  23          {
+  24   1          if(RI)
+  25   1          {
+  26   2              RI = 0;
+  27   2              if(COM1.B_RX_OK == 0)
+  28   2              {
+  29   3                  if(COM1.RX_Cnt >= COM_RX1_Lenth)    COM1.RX_Cnt = 0;
+  30   3                  RX1_Buffer[COM1.RX_Cnt++] = SBUF;
+  31   3                  COM1.RX_TimeOut = TimeOutSet1;
+  32   3              }
+  33   2              
+  34   2          }
+  35   1      
+  36   1          if(TI)
+  37   1          {
+  38   2              TI = 0;
+  39   2              
+  40   2              if(COM1.TX_read != COM1.TX_write)
+  41   2              {
+  42   3      #if (PARITYBIT == ODD_PARITY)
+                          TB8 = 1;            //Set parity bit to 1
+              #elif (PARITYBIT == EVEN_PARITY)
+                          TB8 = 0;            //Set parity bit to 0
+              #endif
+  47   3                  SBUF = TX1_Buffer[COM1.TX_read];
+  48   3                  if(++COM1.TX_read >= COM_TX1_Lenth)         COM1.TX_read = 0;
+  49   3              }
+  50   2              else    COM1.B_TX_busy = 0;
+  51   2              
+  52   2          }
+  53   1      }
+  54          
+  55          void uart_init(unsigned int baud)
+C51 COMPILER V9.00   UART                                                                  11/22/2018 23:27:16 PAGE 2   
+
+  56          {
+  57   1      #if (PARITYBIT == NONE_PARITY)
+  58   1          SCON = 0x50;                        //8-bit variable UART
+  59   1      #elif (PARITYBIT == ODD_PARITY) || (PARITYBIT == EVEN_PARITY) || (PARITYBIT == MARK_PARITY)
+                  SCON = 0xda;                        //9-bit variable UART, parity bit initial to 1
+              #elif (PARITYBIT == SPACE_PARITY)
+                  SCON = 0xd2;                        //9-bit variable UART, parity bit initial to 0
+              #endif
+  64   1      
+  65   1          TL2 = RCAP2L = (65536-(UART_FOSC/32/baud)); //Set auto-reload vaule
+  66   1          TH2 = RCAP2H = (65536-(UART_FOSC/32/baud)) >> 8;
+  67   1          T2CON = 0x34;                       //Timer2 start run
+  68   1          ES = 1;                             //Enable UART interrupt
+  69   1          EA = 1;                             //Open master interrupt switch
+  70   1      }
+  71          
+  72          void uart_write2buff(unsigned char dat) //写入发送缓冲，指针+1
+  73          {
+  74   1          TX1_Buffer[COM1.TX_write] = dat;    //装发送缓冲
+  75   1          if(++COM1.TX_write >= COM_TX1_Lenth)        COM1.TX_write = 0;
+  76   1      
+  77   1          if(COM1.B_TX_busy == 0)             //空闲
+  78   1          {
+  79   2              COM1.B_TX_busy = 1;             //标志忙
+  80   2              TI = 1;                                 //触发发送中断
+  81   2          }
+  82   1      }
+  83          
+  84          void uart_send(unsigned char *bufs,unsigned char len)
+  85          {
+  86   1          if (len != SERIAL_AUTO_LEN)
+  87   1          {
+  88   2              while (len--)
+  89   2              {
+  90   3                  uart_write2buff(*bufs);
+  91   3                  bufs ++;
+  92   3              }
+  93   2          }
+  94   1          else
+  95   1          {
+  96   2              for (; *bufs != 0;      bufs++)  uart_write2buff(*bufs);        //¨??|ì?¨a?ê?1?¤?0?¨￠¨o?
+  97   2          }
+  98   1      }
+  99          
+ 100          unsigned char uart_recv(unsigned char *bufs, unsigned short timeout)
+ 101          {
+ 102   1          unsigned char i;
+ 103   1      
+ 104   1          COM1.RX_TimeOut = timeout;
+ 105   1          
+ 106   1          do
+ 107   1          {
+ 108   2              delay_ms(1);
+ 109   2              if(COM1.RX_TimeOut > 0)         //超时计数
+ 110   2              {
+ 111   3                  if(--COM1.RX_TimeOut == 0)
+ 112   3                  {
+ 113   4                      unsigned char ret;
+ 114   4      
+ 115   4                      ret = COM1.RX_Cnt;
+ 116   4                      if(COM1.RX_Cnt > 0)
+ 117   4                      {
+C51 COMPILER V9.00   UART                                                                  11/22/2018 23:27:16 PAGE 3   
+
+ 118   5                          for(i=0; i<COM1.RX_Cnt; i++)
+ 119   5                          {
+ 120   6                              //uart_write2buff(RX1_Buffer[i]);       //收到的数据原样返回
+ 121   6                              *bufs = RX1_Buffer[i];
+ 122   6                              bufs ++;
+ 123   6                          }
+ 124   5                      }
+ 125   4                      COM1.RX_Cnt = 0;
+ 126   4                      return ret;
+ 127   4                  }
+ 128   3              }
+ 129   2          }
+ 130   1          while(1);
+ 131   1      
+ 132   1          return 0;
+ 133   1      }
+ 134          
+
+
+MODULE INFORMATION:   STATIC OVERLAYABLE
+   CODE SIZE        =    366    ----
+   CONSTANT SIZE    =   ----    ----
+   XDATA SIZE       =     96    ----
+   PDATA SIZE       =   ----    ----
+   DATA SIZE        =      7       6
+   IDATA SIZE       =   ----    ----
+   BIT SIZE         =   ----    ----
+END OF MODULE INFORMATION.
+
+
+C51 COMPILATION COMPLETE.  0 WARNING(S),  0 ERROR(S)
